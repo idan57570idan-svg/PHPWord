@@ -26,6 +26,7 @@ use PhpOffice\PhpWord\ComplexType\RubyProperties;
 use PhpOffice\PhpWord\ComplexType\TblWidth as TblWidthComplexType;
 use PhpOffice\PhpWord\Element\AbstractContainer;
 use PhpOffice\PhpWord\Element\AbstractElement;
+use PhpOffice\PhpWord\Element\Field;
 use PhpOffice\PhpWord\Element\FormField;
 use PhpOffice\PhpWord\Element\Ruby;
 use PhpOffice\PhpWord\Element\Text;
@@ -267,34 +268,8 @@ abstract class AbstractPart
                 }
             }
         } elseif ($xmlReader->elementExists('w:r/w:instrText', $domNode)) {
-            // PreserveText
-            $ignoreText = false;
-            $textContent = '';
             $fontStyle = $this->readFontStyle($xmlReader, $domNode);
-            $nodes = $xmlReader->getElements('w:r', $domNode);
-            foreach ($nodes as $node) {
-                if ($xmlReader->elementExists('w:lastRenderedPageBreak', $node)) {
-                    $parent->addPageBreak();
-                    ++$this->currentPage;
-                }
-                $instrText = $xmlReader->getValue('w:instrText', $node);
-                if (null !== $instrText) {
-                    $textContent .= '{' . $instrText . '}';
-                } else {
-                    if ($xmlReader->elementExists('w:fldChar', $node)) {
-                        $fldCharType = $xmlReader->getAttribute('w:fldCharType', $node, 'w:fldChar');
-                        if ('begin' == $fldCharType) {
-                            $ignoreText = true;
-                        } elseif ('end' == $fldCharType) {
-                            $ignoreText = false;
-                        }
-                    }
-                    if (false === $ignoreText) {
-                        $textContent .= $xmlReader->getValue('w:t', $node);
-                    }
-                }
-            }
-            $parent->addPreserveText(htmlspecialchars($textContent, ENT_QUOTES, 'UTF-8'), $fontStyle, $paragraphStyle);
+            $this->readFieldParagraph($xmlReader, $domNode, $parent, $paragraphStyle, $fontStyle);
 
             return;
         }
@@ -357,6 +332,171 @@ abstract class AbstractPart
             $paragraph = $parent->addTextRun($paragraphStyle);
             foreach ($nodes as $node) {
                 $this->readRun($xmlReader, $node, $paragraph, $docPart, $paragraphStyle);
+            }
+        }
+    }
+
+    /**
+     * Field types recognised by the Field element class.
+     * Instruction text resolving to one of these types produces a Field element;
+     * anything else falls back to PreserveText so no existing output is lost.
+     */
+    private const RECOGNIZED_FIELD_TYPES = [
+        'PAGE', 'NUMPAGES', 'DATE', 'FILENAME', 'STYLEREF', 'REF', 'MACROBUTTON', 'XE', 'INDEX',
+    ];
+
+    /**
+     * Parse a field instruction string (content of w:instrText) into a typed array.
+     *
+     * Returns null when the field type is not in RECOGNIZED_FIELD_TYPES.
+     * Only the type is extracted; raw switches (e.g. \* MERGEFORMAT) are intentionally
+     * omitted because the Field element validates properties/options strictly and the
+     * Word switch names do not map 1-to-1 to PHPWord property keys.
+     *
+     * @return null|array{type:string, properties:array, options:array}
+     */
+    private function parseFieldInstruction(string $instr): ?array
+    {
+        $instr = trim($instr);
+        if (!preg_match('/^(\w+)/s', $instr, $m)) {
+            return null;
+        }
+
+        $type = strtoupper($m[1]);
+        if (!in_array($type, self::RECOGNIZED_FIELD_TYPES, true)) {
+            return null;
+        }
+
+        return ['type' => $type, 'properties' => [], 'options' => []];
+    }
+
+    /**
+     * Parse a paragraph that contains w:instrText runs.
+     *
+     * When the paragraph holds recognised field types (PAGE, NUMPAGES, …) it adds
+     * Field elements – optionally wrapped in a TextRun when there is surrounding text.
+     * Unrecognised field codes fall back to the original PreserveText behaviour so
+     * no existing document content is lost.
+     *
+     * @param mixed $paragraphStyle
+     * @param mixed $fontStyle
+     */
+    private function readFieldParagraph(XMLReader $xmlReader, DOMElement $domNode, AbstractContainer $parent, $paragraphStyle, $fontStyle): void
+    {
+        // First pass: collect segments (text | recognised field | unrecognised preserve)
+        $segments = [];
+        $instrBuffer = '';
+        $fieldState = ''; // '' | 'instr' | 'skip'
+        $textBuffer = '';
+
+        foreach ($xmlReader->getElements('w:r', $domNode) as $node) {
+            if ($xmlReader->elementExists('w:lastRenderedPageBreak', $node)) {
+                $parent->addPageBreak();
+                ++$this->currentPage;
+            }
+
+            $instrText = $xmlReader->getValue('w:instrText', $node);
+
+            if ($instrText !== null) {
+                // Accumulate instruction text (ignore if we're in 'skip' state — should not happen)
+                if ($fieldState === 'instr') {
+                    $instrBuffer .= $instrText;
+                }
+            } elseif ($xmlReader->elementExists('w:fldChar', $node)) {
+                $fldCharType = $xmlReader->getAttribute('w:fldCharType', $node, 'w:fldChar');
+
+                if ($fldCharType === 'begin') {
+                    if ($textBuffer !== '') {
+                        $segments[] = ['type' => 'text', 'value' => $textBuffer];
+                        $textBuffer = '';
+                    }
+                    $instrBuffer = '';
+                    $fieldState = 'instr';
+                } elseif ($fldCharType === 'separate') {
+                    // Switch to skip: discard the cached rendered value between separate/end
+                    $fieldState = 'skip';
+                } elseif ($fldCharType === 'end') {
+                    $parsed = $this->parseFieldInstruction($instrBuffer);
+                    $segments[] = $parsed !== null
+                        ? ['type' => 'field', 'parsed' => $parsed]
+                        : ['type' => 'preserve', 'value' => '{' . trim($instrBuffer) . '}'];
+                    $instrBuffer = '';
+                    $fieldState = '';
+                }
+            } elseif ($fieldState === '') {
+                // Regular text outside any field
+                $text = $xmlReader->getValue('w:t', $node);
+                if ($text !== null) {
+                    $textBuffer .= $text;
+                }
+            }
+            // else: in 'skip' state — silently discard the rendered field value
+        }
+
+        if ($textBuffer !== '') {
+            $segments[] = ['type' => 'text', 'value' => $textBuffer];
+        }
+
+        // Check whether any segment is a recognised field
+        $hasRecognizedField = false;
+        foreach ($segments as $seg) {
+            if ($seg['type'] === 'field') {
+                $hasRecognizedField = true;
+                break;
+            }
+        }
+
+        if (!$hasRecognizedField) {
+            // No recognised fields — reproduce the original PreserveText behaviour exactly
+            $ignoreText = false;
+            $textContent = '';
+            foreach ($xmlReader->getElements('w:r', $domNode) as $node) {
+                $instrT = $xmlReader->getValue('w:instrText', $node);
+                if ($instrT !== null) {
+                    $textContent .= '{' . $instrT . '}';
+                } else {
+                    if ($xmlReader->elementExists('w:fldChar', $node)) {
+                        $fldCharType = $xmlReader->getAttribute('w:fldCharType', $node, 'w:fldChar');
+                        if ($fldCharType === 'begin') {
+                            $ignoreText = true;
+                        } elseif ($fldCharType === 'end') {
+                            $ignoreText = false;
+                        }
+                    }
+                    if (!$ignoreText) {
+                        $textContent .= (string) $xmlReader->getValue('w:t', $node);
+                    }
+                }
+            }
+            $parent->addPreserveText(htmlspecialchars($textContent, ENT_QUOTES, 'UTF-8'), $fontStyle, $paragraphStyle);
+
+            return;
+        }
+
+        // Build output from segments
+        $isSingleField = count($segments) === 1 && $segments[0]['type'] === 'field';
+
+        if ($isSingleField) {
+            $p = $segments[0]['parsed'];
+            $parent->addField($p['type'], $p['properties'], $p['options']);
+        } else {
+            // Mixed content: wrap everything in a TextRun
+            $textRun = $parent->addTextRun($paragraphStyle);
+            foreach ($segments as $seg) {
+                switch ($seg['type']) {
+                    case 'field':
+                        $textRun->addField($seg['parsed']['type'], $seg['parsed']['properties'], $seg['parsed']['options']);
+                        break;
+                    case 'text':
+                        if ($seg['value'] !== '') {
+                            $textRun->addText(htmlspecialchars($seg['value'], ENT_QUOTES, 'UTF-8'), $fontStyle);
+                        }
+                        break;
+                    case 'preserve':
+                        // Unrecognised field code — render as plain text so content is not lost
+                        $textRun->addText(htmlspecialchars($seg['value'], ENT_QUOTES, 'UTF-8'), $fontStyle);
+                        break;
+                }
             }
         }
     }

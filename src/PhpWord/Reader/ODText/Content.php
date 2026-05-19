@@ -129,6 +129,10 @@ class Content extends AbstractPart
 
                                         break;
                                     case 'text:span':
+                                    case 'text:page-number':
+                                    case 'text:page-count':
+                                    case 'text:date':
+                                    case 'text:file-name':
                                         $spans = true;
 
                                         break;
@@ -139,6 +143,22 @@ class Content extends AbstractPart
                                 $element = $this->getSection($phpWord)->addTextRun();
                                 foreach ($children as $child) {
                                     switch ($child->nodeName) {
+                                        case 'text:page-number':
+                                            $element->addField('PAGE');
+
+                                            break;
+                                        case 'text:page-count':
+                                            $element->addField('NUMPAGES');
+
+                                            break;
+                                        case 'text:date':
+                                            $element->addField('DATE');
+
+                                            break;
+                                        case 'text:file-name':
+                                            $element->addField('FILENAME');
+
+                                            break;
                                         case 'text:span':
                                             /** @var DOMElement $child2 */
                                             foreach ($child->childNodes as $child2) {
@@ -154,6 +174,22 @@ class Content extends AbstractPart
                                                     case 'text:s':
                                                         $spaces = (int) $child2->getAttribute('text:c') ?: 1;
                                                         $element->addText(str_repeat(' ', $spaces));
+
+                                                        break;
+                                                    case 'text:page-number':
+                                                        $element->addField('PAGE');
+
+                                                        break;
+                                                    case 'text:page-count':
+                                                        $element->addField('NUMPAGES');
+
+                                                        break;
+                                                    case 'text:date':
+                                                        $element->addField('DATE');
+
+                                                        break;
+                                                    case 'text:file-name':
+                                                        $element->addField('FILENAME');
 
                                                         break;
                                                 }

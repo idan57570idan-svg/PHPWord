@@ -33,6 +33,37 @@ use PhpOffice\PhpWord\Writer\ODText;
 class ODTextTest extends \PHPUnit\Framework\TestCase
 {
     /**
+     * Caption round-trip for ODT: write a caption and read it back as a Caption element.
+     */
+    public function testCaptionRoundTrip(): void
+    {
+        $phpWordWriter = new PhpWord();
+        $section = $phpWordWriter->addSection();
+        $section->addCaption('Figure', 'My ODT figure');
+
+        $writer = new ODText($phpWordWriter);
+        $file = __DIR__ . '/../_files/temp_caption.odt';
+        $writer->save($file);
+
+        self::assertFileExists($file);
+
+        $phpWordReader = IOFactory::load($file, 'ODText');
+        $elements = $phpWordReader->getSections()[0]->getElements();
+
+        $captionFound = false;
+        foreach ($elements as $element) {
+            if ($element instanceof \PhpOffice\PhpWord\Element\Caption) {
+                $captionFound = true;
+                self::assertEquals('Figure', $element->getLabel());
+                break;
+            }
+        }
+        self::assertTrue($captionFound, 'No Caption element found in ODT after round-trip');
+
+        unlink($file);
+    }
+
+    /**
      * Test a document with one section and text.
      */
     public function testOneSectionWithText(): void

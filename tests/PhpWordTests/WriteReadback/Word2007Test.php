@@ -144,6 +144,97 @@ class Word2007Test extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * Caption round-trip: write a caption and read it back as a Caption element.
+     */
+    public function testCaptionRoundTrip(): void
+    {
+        $phpWordWriter = new PhpWord();
+        $section = $phpWordWriter->addSection();
+        $section->addCaption('Figure', 'My test image');
+
+        $writer = new Word2007($phpWordWriter);
+        $file = __DIR__ . '/../_files/temp_caption.docx';
+        $writer->save($file);
+
+        self::assertFileExists($file);
+
+        $phpWordReader = IOFactory::load($file, 'Word2007');
+        $elements = $phpWordReader->getSections()[0]->getElements();
+
+        $captionFound = false;
+        foreach ($elements as $element) {
+            if ($element instanceof \PhpOffice\PhpWord\Element\Caption) {
+                $captionFound = true;
+                self::assertEquals('Figure', $element->getLabel());
+                break;
+            }
+        }
+        self::assertTrue($captionFound, 'No Caption element found after round-trip');
+
+        unlink($file);
+    }
+
+    /**
+     * PAGE field round-trip: write a PAGE field and read it back as a Field element.
+     */
+    public function testPageFieldRoundTrip(): void
+    {
+        $phpWordWriter = new PhpWord();
+        $section = $phpWordWriter->addSection();
+        $section->addField('PAGE');
+
+        $writer = new Word2007($phpWordWriter);
+        $file = __DIR__ . '/../_files/temp_field.docx';
+        $writer->save($file);
+
+        self::assertFileExists($file);
+
+        $phpWordReader = IOFactory::load($file, 'Word2007');
+        $elements = $phpWordReader->getSections()[0]->getElements();
+
+        $fieldFound = false;
+        foreach ($elements as $element) {
+            if ($element instanceof \PhpOffice\PhpWord\Element\Field && $element->getType() === 'PAGE') {
+                $fieldFound = true;
+                break;
+            }
+        }
+        self::assertTrue($fieldFound, 'No PAGE Field element found after round-trip');
+
+        unlink($file);
+    }
+
+    /**
+     * NUMPAGES field round-trip.
+     */
+    public function testNumPagesFieldRoundTrip(): void
+    {
+        $phpWordWriter = new PhpWord();
+        $section = $phpWordWriter->addSection();
+        $section->addField('NUMPAGES');
+
+        $writer = new Word2007($phpWordWriter);
+        $file = __DIR__ . '/../_files/temp_numpages.docx';
+        $writer->save($file);
+
+        self::assertFileExists($file);
+
+        $phpWordReader = IOFactory::load($file, 'Word2007');
+        $elements = $phpWordReader->getSections()[0]->getElements();
+
+        $fieldFound = false;
+        foreach ($elements as $element) {
+            if ($element instanceof \PhpOffice\PhpWord\Element\Field && $element->getType() === 'NUMPAGES') {
+                $fieldFound = true;
+                break;
+            }
+        }
+        self::assertTrue($fieldFound, 'No NUMPAGES Field element found after round-trip');
+
+        unlink($file);
+    }
+
+    /**
      * Test a document with one section and text.
      */
     public function testOneSectionWithText(): void
