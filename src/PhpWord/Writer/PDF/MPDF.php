@@ -104,7 +104,6 @@ class MPDF extends AbstractRenderer implements WriterInterface
             $pdf->WriteHTML(substr($html, 0, $bodyLocation));
             $html = substr($html, $bodyLocation);
         }
-        
         // Pass the full HTML string directly to WriteHTML
         $pdf->WriteHTML($html);
 
