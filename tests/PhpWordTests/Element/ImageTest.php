@@ -11,9 +11,9 @@
  * file that was distributed with this source code. For the full list of
  * contributors, visit https://github.com/PHPOffice/PHPWord/contributors.
  *
- * @see         https://github.com/PHPOffice/PHPWord
+ * @see        https://github.com/PHPOffice/PHPWord
  *
- * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
+ * @license    http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
 namespace PhpOffice\PhpWordTests\Element;
@@ -115,7 +115,8 @@ class ImageTest extends AbstractWebServerEmbedded
     /**
      * Get alt text.
      */
-    public function testAltText(): void {
+    public function testAltText(): void
+    {
         $source = __DIR__ . '/../_files/images/earth.jpg';
         $altText = 'Picture of the earth from space';
         $image = new Image($source, null, false, null, $altText);
@@ -147,7 +148,7 @@ class ImageTest extends AbstractWebServerEmbedded
     public function testUnsupportedImage(): void
     {
         $this->expectException(\PhpOffice\PhpWord\Exception\UnsupportedImageTypeException::class);
-        //disable ssl verification, never do this in real application, you should pass the certificiate instead!!!
+        // disable ssl verification, never do this in real application, you should pass the certificiate instead!!!
         $arrContextOptions = [
             'ssl' => [
                 'verify_peer' => false,
