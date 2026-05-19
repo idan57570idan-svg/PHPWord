@@ -125,7 +125,7 @@ class MPDFTest extends \PHPUnit\Framework\TestCase
         Settings::setPdfRendererName(Settings::PDF_RENDERER_MPDF);
         Settings::setPdfRendererPath('');
 
-        $phpWord = new \PhpOffice\PhpWord\PhpWord();
+        $phpWord = new PhpWord();
         $section = $phpWord->addSection();
 
         // Generate a dummy PNG and embed it to simulate the issue
