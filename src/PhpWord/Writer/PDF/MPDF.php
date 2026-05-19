@@ -11,9 +11,9 @@
  * file that was distributed with this source code. For the full list of
  * contributors, visit https://github.com/PHPOffice/PHPWord/contributors.
  *
- * @see         https://github.com/PHPOffice/PhpWord
+ * @see        https://github.com/PHPOffice/PhpWord
  *
- * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
+ * @license    http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
 namespace PhpOffice\PhpWord\Writer\PDF;
@@ -30,7 +30,7 @@ use PhpOffice\PhpWord\Writer\WriterInterface;
  */
 class MPDF extends AbstractRenderer implements WriterInterface
 {
-    public const SIMULATED_BODY_START = '<!-- simulated body start -->';
+    public const SIMULATED_BODY_START = '';
     private const BODY_TAG = '<body>';
 
     /**
@@ -104,9 +104,9 @@ class MPDF extends AbstractRenderer implements WriterInterface
             $pdf->WriteHTML(substr($html, 0, $bodyLocation));
             $html = substr($html, $bodyLocation);
         }
-        foreach (explode("\n", $html) as $line) {
-            $pdf->WriteHTML("$line\n");
-        }
+        
+        // Pass the full HTML string directly to WriteHTML
+        $pdf->WriteHTML($html);
 
         //  Write to file
         fwrite($fileHandle, $pdf->output($filename, 'S'));
