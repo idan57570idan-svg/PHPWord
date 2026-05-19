@@ -11,9 +11,9 @@
  * file that was distributed with this source code. For the full list of
  * contributors, visit https://github.com/PHPOffice/PHPWord/contributors.
  *
- * @see         https://github.com/PHPOffice/PHPWord
+ * @see        https://github.com/PHPOffice/PHPWord
  *
- * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
+ * @license    http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
 namespace PhpOffice\PhpWord\Element;
@@ -30,131 +30,27 @@ use PhpOffice\PhpWord\Style\Image as ImageStyle;
  */
 class Image extends AbstractElement
 {
-    /**
-     * Image source type constants.
-     */
-    const SOURCE_LOCAL = 'local'; // Local images
-    const SOURCE_GD = 'gd'; // Generated using GD
-    const SOURCE_ARCHIVE = 'archive'; // Image in archives zip://$archive#$image
-    const SOURCE_STRING = 'string'; // Image from string
+    const SOURCE_LOCAL = 'local';
+    const SOURCE_GD = 'gd';
+    const SOURCE_ARCHIVE = 'archive';
+    const SOURCE_STRING = 'string';
 
-    /**
-     * Image source.
-     *
-     * @var string
-     */
     private $source;
-
-    /**
-     * Source type: local|gd|archive.
-     *
-     * @var string
-     */
     private $sourceType;
-
-    /**
-     * Image style.
-     *
-     * @var ?ImageStyle
-     */
     private $style;
-
-    /**
-     * Is watermark.
-     *
-     * @var bool
-     */
     private $watermark;
-
-    /**
-     * Name of image.
-     *
-     * @var null|string
-     */
     private $name;
-
-    /**
-     * Image alt text.
-     *
-     * @var null|string
-     */
     private $altText;
-
-    /**
-     * Image type.
-     *
-     * @var string
-     */
     private $imageType;
-
-    /**
-     * Image create function.
-     *
-     * @var string
-     */
     private $imageCreateFunc;
-
-    /**
-     * Image function.
-     *
-     * @var null|callable(resource): void
-     */
     private $imageFunc;
-
-    /**
-     * Image extension.
-     *
-     * @var string
-     */
     private $imageExtension;
-
-    /**
-     * Image quality.
-     *
-     * Functions imagepng() and imagejpeg() have an optional parameter for
-     * quality.
-     *
-     * @var null|int
-     */
     private $imageQuality;
-
-    /**
-     * Is memory image.
-     *
-     * @var bool
-     */
     private $memoryImage;
-
-    /**
-     * Image target file name.
-     *
-     * @var string
-     */
     private $target;
-
-    /**
-     * Image media index.
-     *
-     * @var int
-     */
     private $mediaIndex;
-
-    /**
-     * Has media relation flag; true for Link, Image, and Object.
-     *
-     * @var bool
-     */
     protected $mediaRelation = true;
 
-    /**
-     * Create new image element.
-     *
-     * @param string $source
-     * @param mixed $style
-     * @param bool $watermark
-     * @param null|string $name
-     * @param null|string $altText
-     */
     public function __construct($source, $style = null, $watermark = false, $name = null, $altText = null)
     {
         $this->source = $source;
@@ -166,207 +62,106 @@ class Image extends AbstractElement
         $this->checkImage();
     }
 
-    /**
-     * Get Image style.
-     *
-     * @return ?ImageStyle
-     */
     public function getStyle()
     {
         return $this->style;
     }
 
-    /**
-     * Get image source.
-     *
-     * @return string
-     */
     public function getSource()
     {
         return $this->source;
     }
 
-    /**
-     * Get image source type.
-     *
-     * @return string
-     */
     public function getSourceType()
     {
         return $this->sourceType;
     }
 
-    /**
-     * Sets the image name.
-     *
-     * @param null|string $value
-     */
     public function setName($value): void
     {
         $this->name = $value;
     }
 
-    /**
-     * Get image alt text.
-     *
-     * @return null|string
-     */
-    public function getAltText(): ?string 
+    public function getAltText(): ?string
     {
         return $this->altText;
     }
 
-    /**
-     * Sets the image alt text.
-     *
-     * @param null|string $value
-     */
     public function setAltText(?string $value): void
     {
         $this->altText = $value;
     }
 
-    /**
-     * Get image name.
-     *
-     * @return null|string
-     */
     public function getName()
     {
         return $this->name;
     }
 
-    /**
-     * Get image media ID.
-     *
-     * @return string
-     */
     public function getMediaId()
     {
         return md5($this->source);
     }
 
-    /**
-     * Get is watermark.
-     *
-     * @return bool
-     */
     public function isWatermark()
     {
         return $this->watermark;
     }
 
-    /**
-     * Set is watermark.
-     *
-     * @param bool $value
-     */
     public function setIsWatermark($value): void
     {
         $this->watermark = $value;
     }
 
-    /**
-     * Get image type.
-     *
-     * @return string
-     */
     public function getImageType()
     {
         return $this->imageType;
     }
 
-    /**
-     * Get image create function.
-     *
-     * @return string
-     */
     public function getImageCreateFunction()
     {
         return $this->imageCreateFunc;
     }
 
-    /**
-     * Get image function.
-     *
-     * @return null|callable(resource): void
-     */
     public function getImageFunction(): ?callable
     {
         return $this->imageFunc;
     }
 
-    /**
-     * Get image quality.
-     */
     public function getImageQuality(): ?int
     {
         return $this->imageQuality;
     }
 
-    /**
-     * Get image extension.
-     *
-     * @return string
-     */
     public function getImageExtension()
     {
         return $this->imageExtension;
     }
 
-    /**
-     * Get is memory image.
-     *
-     * @return bool
-     */
     public function isMemImage()
     {
         return $this->memoryImage;
     }
 
-    /**
-     * Get target file name.
-     *
-     * @return string
-     */
     public function getTarget()
     {
         return $this->target;
     }
 
-    /**
-     * Set target file name.
-     *
-     * @param string $value
-     */
     public function setTarget($value): void
     {
         $this->target = $value;
     }
 
-    /**
-     * Get media index.
-     *
-     * @return int
-     */
     public function getMediaIndex()
     {
         return $this->mediaIndex;
     }
 
-    /**
-     * Set media index.
-     *
-     * @param int $value
-     */
     public function setMediaIndex($value): void
     {
         $this->mediaIndex = $value;
     }
 
-    /**
-     * Get image string.
-     */
     public function getImageString(): ?string
     {
         $source = $this->source;
@@ -374,8 +169,6 @@ class Image extends AbstractElement
         $imageBinary = null;
         $isTemp = false;
 
-        // Get actual source from archive image or other source
-        // Return null if not found
         if ($this->sourceType == self::SOURCE_ARCHIVE) {
             $source = substr($source, 6);
             [$zipFilename, $imageFilename] = explode('#', $source);
@@ -393,18 +186,9 @@ class Image extends AbstractElement
             $actualSource = $source;
         }
 
-        // Can't find any case where $actualSource = null hasn't captured by
-        // preceding exceptions. Please uncomment when you find the case and
-        // put the case into Element\ImageTest.
-        // if ($actualSource === null) {
-        //     return null;
-        // }
-
-        // Read image binary data and convert to hex/base64 string
         if ($this->sourceType == self::SOURCE_GD) {
             $imageResource = call_user_func($this->imageCreateFunc, $actualSource);
             if ($this->imageType === 'image/png') {
-                // PNG images need to preserve alpha channel information
                 imagesavealpha($imageResource, true);
             }
             ob_start();
@@ -423,7 +207,6 @@ class Image extends AbstractElement
             }
         }
 
-        // Delete temporary file if necessary
         if ($isTemp === true) {
             @unlink($actualSource);
         }
@@ -431,15 +214,6 @@ class Image extends AbstractElement
         return $imageBinary;
     }
 
-    /**
-     * Get image string data.
-     *
-     * @param bool $base64
-     *
-     * @return null|string
-     *
-     * @since 0.11.0
-     */
     public function getImageStringData($base64 = false)
     {
         $imageBinary = $this->getImageString();
@@ -454,14 +228,10 @@ class Image extends AbstractElement
         return bin2hex($imageBinary);
     }
 
-    /**
-     * Check memory image, supported type, image functions, and proportional width/height.
-     */
     private function checkImage(): void
     {
         $this->setSourceType();
 
-        // Check image data
         if ($this->sourceType == self::SOURCE_ARCHIVE) {
             $imageData = $this->getArchiveImageSize($this->source);
         } elseif ($this->sourceType == self::SOURCE_STRING) {
@@ -474,7 +244,6 @@ class Image extends AbstractElement
         }
         [$actualWidth, $actualHeight, $imageType] = $imageData;
 
-        // Check image type support
         $supportedTypes = [IMAGETYPE_JPEG, IMAGETYPE_GIF, IMAGETYPE_PNG];
         if ($this->sourceType != self::SOURCE_GD && $this->sourceType != self::SOURCE_STRING) {
             $supportedTypes = array_merge($supportedTypes, [IMAGETYPE_BMP, IMAGETYPE_TIFF_II, IMAGETYPE_TIFF_MM]);
@@ -483,15 +252,11 @@ class Image extends AbstractElement
             throw new UnsupportedImageTypeException();
         }
 
-        // Define image functions
         $this->imageType = image_type_to_mime_type($imageType);
         $this->setFunctions();
         $this->setProportionalSize($actualWidth, $actualHeight);
     }
 
-    /**
-     * Set source type.
-     */
     private function setSourceType(): void
     {
         if (stripos(strrev($this->source), strrev('.php')) === 0) {
@@ -518,15 +283,6 @@ class Image extends AbstractElement
         }
     }
 
-    /**
-     * Get image size from archive.
-     *
-     * @since 0.12.0 Throws CreateTemporaryFileException.
-     *
-     * @param string $source
-     *
-     * @return null|array
-     */
     private function getArchiveImageSize($source)
     {
         $imageData = null;
@@ -535,7 +291,7 @@ class Image extends AbstractElement
 
         $tempFilename = tempnam(Settings::getTempDir(), 'PHPWordImage');
         if (false === $tempFilename) {
-            throw new CreateTemporaryFileException(); // @codeCoverageIgnore
+            throw new CreateTemporaryFileException();
         }
 
         $zip = new ZipArchive();
@@ -554,9 +310,6 @@ class Image extends AbstractElement
         return $imageData;
     }
 
-    /**
-     * Set image functions and extensions.
-     */
     private function setFunctions(): void
     {
         switch ($this->imageType) {
@@ -606,12 +359,6 @@ class Image extends AbstractElement
         }
     }
 
-    /**
-     * Set proportional width/height if one dimension not available.
-     *
-     * @param int $actualWidth
-     * @param int $actualHeight
-     */
     private function setProportionalSize($actualWidth, $actualHeight): void
     {
         $styleWidth = $this->style->getWidth();
