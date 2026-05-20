@@ -104,8 +104,21 @@ class MPDF extends AbstractRenderer implements WriterInterface
             $pdf->WriteHTML(substr($html, 0, $bodyLocation));
             $html = substr($html, $bodyLocation);
         }
-        // Pass the full HTML string directly to WriteHTML
-        $pdf->WriteHTML($html);
+        $pcreBacktrackLimit = (int) ini_get('pcre.backtrack_limit');
+        foreach (array_chunk(explode(PHP_EOL, $html), 1000) as $lines) {
+            $chunk = implode(PHP_EOL, $lines);
+            // A single line containing an embedded base64 image can exceed
+            // pcre.backtrack_limit. Temporarily raise the limit so Mpdf does
+            // not refuse the chunk, then restore it immediately after.
+            $chunkLen = strlen($chunk);
+            if ($chunkLen > $pcreBacktrackLimit) {
+                ini_set('pcre.backtrack_limit', (string) ($chunkLen + 1));
+            }
+            $pdf->WriteHTML($chunk);
+            if ($chunkLen > $pcreBacktrackLimit) {
+                ini_set('pcre.backtrack_limit', (string) $pcreBacktrackLimit);
+            }
+        }
 
         //  Write to file
         fwrite($fileHandle, $pdf->output($filename, 'S'));
