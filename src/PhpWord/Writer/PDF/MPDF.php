@@ -11,9 +11,9 @@
  * file that was distributed with this source code. For the full list of
  * contributors, visit https://github.com/PHPOffice/PHPWord/contributors.
  *
- * @see        https://github.com/PHPOffice/PhpWord
+ * @see         https://github.com/PHPOffice/PhpWord
  *
- * @license    http://www.gnu.org/licenses/lgpl.txt LGPL version 3
+ * @license     http://www.gnu.org/licenses/lgpl.txt LGPL version 3
  */
 
 namespace PhpOffice\PhpWord\Writer\PDF;
