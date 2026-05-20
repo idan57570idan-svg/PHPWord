@@ -117,10 +117,13 @@ class MPDFTest extends \PHPUnit\Framework\TestCase
         // Generate a random-noise JPEG (~700-900 KB) that resists JPEG compression.
         // The resulting base64 data URI will be a single HTML line > 900 KB,
         // which exceeds the default pcre.backtrack_limit of 1 000 000.
-        $img = imagecreatetruecolor(900, 600);
-        for ($y = 0; $y < 600; $y++) {
-            for ($x = 0; $x < 900; $x++) {
-                imagesetpixel($img, $x, $y, imagecolorallocate($img, rand(0, 255), rand(0, 255), rand(0, 255)));
+        $img = imagecreatetruecolor(1600, 1200);
+        if ($img === false) {
+            self::markTestSkipped('imagecreatetruecolor() failed.');
+        }
+        for ($y = 0; $y < 1200; ++$y) {
+            for ($x = 0; $x < 1600; ++$x) {
+                imagesetpixel($img, $x, $y, (int) imagecolorallocate($img, mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255)));
             }
         }
         ob_start();
@@ -166,22 +169,27 @@ class MPDFTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers \PhpOffice\PhpWord\Writer\PDF\MPDF
-     *
      * Regression test for #2876: large inline Base64 images used to exhaust
      * pcre.backtrack_limit when the Mpdf writer split the HTML line-by-line.
      */
     public function testWriteLargeEmbeddedImageDoesNotExhaustBacktrackLimit(): void
     {
-        Settings::setPdfRendererName(Settings::PDF_RENDERER_MPDF);
-        Settings::setPdfRendererPath('');
+        if (!extension_loaded('gd')) {
+            self::markTestSkipped('GD extension required to generate a test image.');
+        }
+
+        $rendererName = Settings::PDF_RENDERER_MPDF;
+        $rendererLibraryPath = realpath(PHPWORD_TESTS_BASE_DIR . '/../vendor/mpdf/mpdf');
+        Settings::setPdfRenderer($rendererName, $rendererLibraryPath); // @phpstan-ignore-line
 
         $phpWord = new PhpWord();
         $section = $phpWord->addSection();
 
-        // Generate a dummy PNG and embed it to simulate the issue
         $imagePath = tempnam(sys_get_temp_dir(), 'phpword_') . '.png';
         $gd = imagecreatetruecolor(100, 100);
+        if ($gd === false) {
+            self::markTestSkipped('imagecreatetruecolor() failed.');
+        }
         imagepng($gd, $imagePath);
         imagedestroy($gd);
 
