@@ -104,18 +104,25 @@ class MPDF extends AbstractRenderer implements WriterInterface
             $pdf->WriteHTML(substr($html, 0, $bodyLocation));
             $html = substr($html, $bodyLocation);
         }
-        $pcreBacktrackLimit = (int) ini_get('pcre.backtrack_limit');
-        foreach (explode(PHP_EOL, $html) as $line) {
-            // A single line containing an embedded base64 image can exceed
-            // pcre.backtrack_limit. Temporarily raise the limit so Mpdf does
-            // not refuse the line, then restore it immediately after.
-            $lineLen = strlen($line);
-            if ($lineLen > $pcreBacktrackLimit) {
-                ini_set('pcre.backtrack_limit', (string) ($lineLen + 1));
+        $pcreBacktrackLimitString = ini_get('pcre.backtrack_limit');
+        if (!is_string($pcreBacktrackLimitString)) {
+            $pcreBacktrackLimitString = '1000000';
+        }
+        $pcreBacktrackLimit = (int) $pcreBacktrackLimitString;
+        $origLimit = $pcreBacktrackLimit;
+
+        try {
+            foreach (explode("\n", $html) as $line) {
+                $lineLen = strlen($line);
+                if ($lineLen > $pcreBacktrackLimit) {
+                    $pcreBacktrackLimit = $lineLen + 1;
+                    ini_set('pcre.backtrack_limit', (string) $pcreBacktrackLimit);
+                }
+                $pdf->WriteHTML("$line\n");
             }
-            $pdf->WriteHTML($line);
-            if ($lineLen > $pcreBacktrackLimit) {
-                ini_set('pcre.backtrack_limit', (string) $pcreBacktrackLimit);
+        } finally {
+            if ($pcreBacktrackLimit !== $origLimit) {
+                ini_set('pcre.backtrack_limit', $pcreBacktrackLimitString);
             }
         }
 

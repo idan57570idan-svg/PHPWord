@@ -128,13 +128,18 @@ class MPDFTest extends \PHPUnit\Framework\TestCase
         }
         ob_start();
         imagejpeg($img, null, 95);
-        $imageData = ob_get_clean();
-        imagedestroy($img);
+        $imageData = (string) ob_get_clean();
 
         $tmpImage = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'phpword_test_large_2876.jpg';
         file_put_contents($tmpImage, $imageData);
 
+        $testLimit = 1000000;
+        $origLimitStr = (string) ini_get('pcre.backtrack_limit');
+        ini_set('pcre.backtrack_limit', (string) $testLimit);
+
         try {
+            self::assertGreaterThan($testLimit, strlen(base64_encode($imageData)), 'Test image base64 must exceed pcre.backtrack_limit to exercise the fix');
+
             $phpWord = new PhpWord();
             $section = $phpWord->addSection();
             $section->addText('Large-image PDF — issue #2876 regression test');
@@ -145,7 +150,9 @@ class MPDFTest extends \PHPUnit\Framework\TestCase
 
             self::assertFileExists($file);
             self::assertGreaterThan(0, filesize($file));
+            self::assertSame($testLimit, (int) ini_get('pcre.backtrack_limit'));
         } finally {
+            ini_set('pcre.backtrack_limit', $origLimitStr);
             @unlink($tmpImage);
             if (file_exists($file)) {
                 unlink($file);
